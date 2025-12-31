@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="./resources/img.png" alt="Project Logo" width="140" />
+  <img src="../resources/img.png" alt="Project Logo" width="140" />
 </p>
 
 # BitTorrent Client – Research Project
