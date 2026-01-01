@@ -1,10 +1,3 @@
-## Research Paper
-
-The ongoing research paper documenting this project can be found here:
-
-📄 https://docs.google.com/document/d/1R760h9ZqAe14KghbvlX8gaf3uBLCGrgLZzZGJg4EnV0/edit?usp=sharing<p align="center">
-  <img src="./resources/img.png" alt="Project Logo" width="140" />
-</p>
 
 # BitTorrent Client – Research Project
 
@@ -18,6 +11,13 @@ The focus is on:
 
 This is a **learning-first, research-driven project**, not a rushed implementation.
 
+## Research Paper
+
+This project is accompanied by a **living research paper** that evolves alongside the code.  
+It documents concepts, protocol details, design decisions, and learnings throughout the journey.
+
+👉 **Read the research paper:**  
+[BitTorrent Client — Ongoing Research Document](https://docs.google.com/document/d/1R760h9ZqAe14KghbvlX8gaf3uBLCGrgLZzZGJg4EnV0/edit?usp=sharing)
 ## Structure
 
 docs/
