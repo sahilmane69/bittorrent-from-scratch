@@ -1,4 +1,8 @@
-<p align="center">
+## Research Paper
+
+The ongoing research paper documenting this project can be found here:
+
+📄 https://docs.google.com/document/d/1R760h9ZqAe14KghbvlX8gaf3uBLCGrgLZzZGJg4EnV0/edit?usp=sharing<p align="center">
   <img src="./resources/img.png" alt="Project Logo" width="140" />
 </p>
 
