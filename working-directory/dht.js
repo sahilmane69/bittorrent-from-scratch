@@ -22,21 +22,30 @@ function buildPing() {
 }
 
 function sendPing(node) {
-    const message = buildPing();
-    socket.send(message, 0, message.length, node.port, node.host);
+    const msg = buildPing();
+    socket.send(msg, 0, msg.length, node.port, node.host, err => {
+        if (err) console.log("SEND ERROR", err);
+        else console.log("PING SENT ->", node.host);
+    });
 }
 
-socket.on("message", msg => {
+socket.on("message", (msg, rinfo) => {
     try {
         const data = bencode.decode(msg);
-        if (data.y.toString() === "r") {
-            console.log("DHT response from:", data.r.id.toString("hex"));
-        }
-    } catch {}
+        console.log("RESPONSE FROM", rinfo.address, data);
+    } catch (e) {
+        console.log("DECODE ERROR", e);
+    }
+});
+
+socket.on("error", err => {
+    console.log("SOCKET ERROR", err);
 });
 
 socket.on("listening", () => {
+    const address = socket.address();
+    console.log("DHT node listening on", address);
     BOOTSTRAP_NODES.forEach(sendPing);
 });
 
-socket.bind(6881);
+socket.bind(0);
