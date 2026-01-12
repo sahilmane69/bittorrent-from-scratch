@@ -1,59 +1,34 @@
+# BitTorrent Client – From Scratch
 
-# BitTorrent Client – Research Project
+<p align="center">
+  <img src="./resources/img.png" alt="BitTorrent From Scratch" width="120"/>
+</p>
 
-This repository documents my journey of **understanding and building a BitTorrent client from scratch**.
+A complete implementation of a **BitTorrent client built from scratch** to deeply understand how the BitTorrent protocol works internally.
 
-The focus is on:
-- Learning BitTorrent fundamentals
-- Implementing features step by step
-- Writing daily commits as proof of work
-- Growing a research paper alongside the code
+This project is focused on **protocol-level understanding**, not shortcuts or libraries.
 
-This is a **learning-first, research-driven project**, not a rushed implementation.
+## What Was Built
 
-## Research Paper
+- Torrent file parsing (Bencode, info hash, metadata)
+- Tracker communication (announce, peer discovery)
+- DHT (Kademlia, ping, node discovery)
+- Peer handshake & wire protocol basics
+- Real network interaction & protocol flow
+- End-to-end understanding of BitTorrent internals
 
-This project is accompanied by a **living research paper** that evolves alongside the code.  
-It documents concepts, protocol details, design decisions, and learnings throughout the journey.
+## Blog
 
-👉 **Read the research paper:**  
-[BitTorrent Client — Ongoing Research Document](https://docs.google.com/document/d/1R760h9ZqAe14KghbvlX8gaf3uBLCGrgLZzZGJg4EnV0/edit?usp=sharing)
+Full journey, daily learnings, mistakes, and deep dives are documented here:
+
+👉 **Blog:** https://bittorrent-sahilmane.netlify.app/
+
 ## Structure
 
-docs/
-research.md # Living research notes
-
-resources/
-img.png # Project logo
-
-src/
-Readme.md # Project overview
-
-shell
-Copy code
-
-## Research
-
-All learning, observations, and design decisions are documented in  
-`docs/research.md` and will gradually evolve into a formal research paper.
+- `working-directory/` – **core BitTorrent implementation**
+- `docs/` – learning & protocol notes  
+- `resources/` – assets & references  
 
 ## Status
 
-Currently exploring BitTorrent fundamentals and protocol design.
-
-## Author
-
-Sahil Mane
-
-
-
-
-
-
-
-
-
-
-
-
-
+✅ **Completed** — research & learning objectives achieved.
