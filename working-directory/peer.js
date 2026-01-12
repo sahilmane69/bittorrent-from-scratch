@@ -1,88 +1,137 @@
 import net from "net";
-import crypto from "crypto";
-import fs from "fs";
-import bencode from "bencode";
 import { buildHandshake } from "./utils/handshake.js";
 import { parseMessage, MESSAGE_TYPES } from "./utils/message.js";
 import { buildInterested } from "./utils/builder.js";
 import { buildRequest } from "./utils/request.js";
-import { PieceManager } from "./utils/pieceManager.js";
 import { sha1 } from "./utils/hash.js";
 
-const torrent = bencode.decode(fs.readFileSync("./sample.torrent"));
-const info = torrent[Buffer.from("info")];
+export class Peer {
+  constructor(peer, torrent, pieceManager, pieces) {
+    this.ip = peer.ip;
+    this.port = peer.port;
+    this.torrent = torrent; // { infoHash, peerId, ... }
+    this.pieceManager = pieceManager;
+    this.pieces = pieces; // The raw pieces buffer from torrent info
 
-const infoHash = crypto
-    .createHash("sha1")
-    .update(bencode.encode(info))
-    .digest();
+    this.socket = new net.Socket();
+    this.choked = true;
+    this.handshakeComplete = false;
+    this.queue = []; // internal queue
+    this.bitfield = null;
+    this.buffer = Buffer.alloc(0);
+  }
 
-const peerId = Buffer.from("-SM0001-" + crypto.randomBytes(12).toString("hex")).slice(0, 20);
+  connect() {
+    this.socket.connect(this.port, this.ip, () => {
+      console.log(`Connected to ${this.ip}:${this.port}`);
+      this.socket.write(
+        buildHandshake(this.torrent.infoHash, this.torrent.peerId)
+      );
+    });
 
-const pieceLength = info[Buffer.from("piece length")];
-const totalLength = info[Buffer.from("length")];
-const pieces = info[Buffer.from("pieces")];
+    this.socket.on("data", (data) => {
+      // console.log(`RX ${data.length} from ${this.ip}`);
+      this.buffer = Buffer.concat([this.buffer, data]);
+      this.processBuffer();
+    });
+    this.socket.on("error", (err) => {
+      // console.log(`Error with ${this.ip}: ${err.message}`);
+      this.socket.destroy();
+    });
+    this.socket.on("end", () => {
+      // console.log(`Connection closed by ${this.ip}`);
+    });
+  }
 
-const pieceManager = new PieceManager(pieceLength, totalLength);
-
-const peer = {
-    ip: "127.0.0.1", // later: real peer from tracker
-    port: 6881
-};
-
-const BLOCK_LENGTH = 16384;
-const socket = new net.Socket();
-
-socket.connect(peer.port, peer.ip, () => {
-    console.log(`Connected to peer ${peer.ip}:${peer.port}`);
-    socket.write(buildHandshake(infoHash, peerId));
-    console.log("Handshake sent");
-});
-
-socket.on("data", data => {
-    if (data.length === 68) {
-        console.log("Handshake received");
-        return;
+  processBuffer() {
+    // 1. Handshake
+    if (!this.handshakeComplete) {
+      if (this.buffer.length >= 68) {
+        // We could verify protocol string here
+        this.handshakeComplete = true;
+        this.buffer = this.buffer.slice(68);
+        this.socket.write(buildInterested());
+        // Continue processing
+      } else {
+        return; // Wait for more data
+      }
     }
 
-    const message = parseMessage(data);
-    if (!message || message.type === "keep-alive") return;
+    // 2. Messages
+    while (this.buffer.length > 4) {
+      const len = this.buffer.readUInt32BE(0);
+      if (len === 0) {
+        // Keep-alive
+        this.buffer = this.buffer.slice(4);
+        continue;
+      }
 
+      if (this.buffer.length >= 4 + len) {
+        const msgBuffer = this.buffer.slice(0, 4 + len);
+        this.buffer = this.buffer.slice(4 + len);
+
+        const message = parseMessage(msgBuffer);
+        if (message) this.handleMessage(message);
+      } else {
+        break; // Wait for more data
+      }
+    }
+  }
+
+  handleMessage(message) {
     const type = MESSAGE_TYPES[message.id];
 
-    if (type === "bitfield") {
-        socket.write(buildInterested());
-        console.log("Interested sent");
-    }
-
     if (type === "unchoke") {
-        console.log("Unchoked – requesting piece 0");
-        socket.write(buildRequest(0, 0, BLOCK_LENGTH));
+      console.log(`Unchoked by ${this.ip}`);
+      this.choked = false;
+      this.requestPiece();
+    } else if (type === "piece") {
+      const size = message.payload.length - 8;
+      console.log(`Piece from ${this.ip} size ${size}`);
+      this.handlePiece(message.payload);
+    } else if (type === "have") {
+      // console.log(`Have from ${this.ip}`);
+      // update bitfield in real app
+    } else if (type === "bitfield") {
+      // console.log(`Bitfield from ${this.ip}`);
+      // set bitfield
+    }
+  }
+
+  requestPiece() {
+    if (this.choked) return;
+
+    // Ask PieceManager what we need
+    // This requires PieceManager to manage state globally or we ask for specific piece.
+    // For simplicity, let's ask PieceManager for a block we can download.
+    // We'll need to extend PieceManager to support "get needed block".
+
+    const block = this.pieceManager.getNeededBlock();
+    if (block) {
+      this.socket.write(buildRequest(block.index, block.begin, block.length));
+    }
+  }
+
+  handlePiece(payload) {
+    const index = payload.readUInt32BE(0);
+    const begin = payload.readUInt32BE(4);
+    const block = payload.slice(8);
+
+    const done = this.pieceManager.addBlock(index, begin, block);
+
+    if (done) {
+      // Verify
+      const piece = this.pieceManager.getPiece(index);
+      const expected = this.pieces.slice(index * 20, index * 20 + 20);
+      if (sha1(piece).equals(expected)) {
+        console.log(`Piece ${index} VERIFIED`);
+        this.pieceManager.writePiece(index, piece);
+      } else {
+        console.log(`Piece ${index} FAILED`);
+        this.pieceManager.reset(index);
+      }
     }
 
-    if (type === "piece") {
-        const index = message.payload.readUInt32BE(0);
-        const begin = message.payload.readUInt32BE(4);
-        const block = message.payload.slice(8);
-
-        const completed = pieceManager.addBlock(index, begin, block);
-        console.log(`Received block ${begin} length ${block.length}`);
-
-        if (completed) {
-            const piece = pieceManager.getPiece(index);
-            const hash = sha1(piece);
-            const expected = pieces.slice(index * 20, index * 20 + 20);
-
-            if (hash.equals(expected)) {
-                fs.writeFileSync(`piece_${index}.bin`, piece);
-                console.log(`Piece ${index} verified & written to disk`);
-            } else {
-                console.log(`Piece ${index} failed hash check – discarded`);
-            }
-        }
-    }
-});
-
-socket.on("error", err => {
-    console.error("Socket error:", err.message);
-});
+    this.requestPiece(); // Pipeline
+  }
+}

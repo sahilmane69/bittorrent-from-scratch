@@ -47,3 +47,4 @@
              # ===== Misc =====
              coverage/
              *.swp
+working-directory/downloaded_file
