@@ -28,7 +28,3 @@ Full journey, daily learnings, mistakes, and deep dives are documented here:
 - `working-directory/` – **core BitTorrent implementation**
 - `docs/` – learning & protocol notes  
 - `resources/` – assets & references  
-
-## Status
-
-✅ **Completed** — research & learning objectives achieved.
